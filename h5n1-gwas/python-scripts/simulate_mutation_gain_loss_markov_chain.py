@@ -24,6 +24,9 @@
 
 # In[1]:
 
+import config as cfg
+
+import calculate_enrichment_scores_across_tree_JSON as calenr
 
 import glob, json
 import re,copy, imp
@@ -31,7 +34,7 @@ import pandas as pd
 import numpy as np
 
 # for this to work, you will need to download the most recent version of baltic, available here 
-bt = imp.load_source('baltic', '/Users/lmoncla/src/baltic/baltic/baltic.py')
+bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
 
 
 # In[ ]:
@@ -124,7 +127,7 @@ def return_most_recent_mutated_node(node, gene):
 # In[3]:
 
 
-def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated):
+def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene):
     
     # we have to make a copy here. if not, then the new mutations will be appended to the original tree. If we just
     # do a simple assignment, then both no_muts_tree and tree will point to the same object in memory, which is not
@@ -184,8 +187,8 @@ def perform_simulations(input_tree, gene, iterations, total_tree_branch_length, 
     scores_dict_all = {}
     
     for i in range(iterations):
-        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated)
-        scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts)
+        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
+        scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
         times_detected_all[i] = times_detected_dict
         scores_dict_all[i] = scores_dict
 

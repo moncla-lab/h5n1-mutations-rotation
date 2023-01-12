@@ -18,6 +18,12 @@
 
 # In[3]:
 
+import config as cfg
+
+import json
+
+import imp
+bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
 
 """read in a tree in json format"""
 def read_in_tree_json(tree_path):
@@ -26,11 +32,13 @@ def read_in_tree_json(tree_path):
 
     # Nextstrain tree jsons are broken into 2 components: metadata and tree. We just need the tree
     tree_object=tree_json['tree']
-    meta=tree_json['meta']
+    #meta=tree_json['meta']
     json_translation={'absoluteTime':lambda k: k.traits['node_attrs']['num_date']['value'],'name':'name'} ## allows baltic to find correct attributes in JSON, height and name are required at a minimum
 
-    tree=bt.loadJSON(tree_object,json_translation)
+    #tree=bt.loadJSON(tree_object,json_translation)
+    tree,meta=bt.loadJSON(tree_json,json_translation)
     
+
     return(tree)
 
 
@@ -351,7 +359,7 @@ def calculate_enrichment_score_proportions(mut_counts_dict, host1, host2, host_c
 
 
 """for a tree and all amino acid mutations, calculate the enrichment scores across the tree"""
-def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annotation, min_required_count, method, host_counts):
+def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annotation, min_required_count, method, host_counts, gene):
     scores_dict = {}
     times_detected_dict = {}
     branch_lengths_dict = {}

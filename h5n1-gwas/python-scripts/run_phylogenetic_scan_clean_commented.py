@@ -26,10 +26,12 @@
 
 # In[1]:
 
+import config as cfg
 
 """import modules we will need. Pandas and numpy are for manipulating dataframes, time is for timestamps, glob 
 is for manuevering through shell directries, and json is for processing json files"""
-import glob, json
+import glob
+import json
 import pandas as pd 
 import numpy as np
 import time
@@ -38,7 +40,6 @@ import time
 """this is a module for running R within a juyter notebook. This is not a recommended way to do plotting, but
 one that I have maintained because I'm pretty dependent on ggplot at this point"""
 import rpy2
-#get_ipython().run_line_magic('load_ext', 'rpy2.ipython')
 
 """there are a couple different tools that can be used to parse trees, but my preferred is baltic. Baltic is
 a tool written in python by Gytis Dudas, and available here: https://github.com/evogytis/baltic. If installing 
@@ -56,8 +57,8 @@ bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
 the %run command will run the entirety of the specified jupyter notebooks. This will allow all of the functions
 coded in those notebooks to be available in this one. The first notebook does part 1, and the 2nd does part 2."""
 
-get_ipython().run_line_magic('run', 'calculate-enrichment-scores-across-tree-JSON.ipynb')
-get_ipython().run_line_magic('run', 'simulate-mutation-gain-loss-markov-chain.ipynb')
+import calculate_enrichment_scores_across_tree_JSON as calenr
+import simulate_mutation_gain_loss_markov_chain as simmut
 
 
 # In[14]:
@@ -93,27 +94,11 @@ current_date = str(date.today())
 # In[17]:
 
 
-tree_path = "/Users/jort/coding/h5n1-mutations-rotation/base-build/auspice/flu_avian_h5n1_pb2.json"
-
-"""For the tree you are reading in, you need to specify which attribute encodes the host value. For the avian 
-flu trees on nextstrain, this attribute is `host`. If you specified a different label, like `host_species` or 
-`Host`, you would need to change this. You can check this by manually looking at the tree json file in a text
-editor, or by parsing through a tree and reading the attributes. """
-host_annotation = 'host'
-
-"""specify the gene you are running, which hosts to compare, method, and minimum required count. Here, host 1 is 
-the host that we want to find mutations that are enriched in, host 2 is the background host"""
-gene = "PB2"
-host1 = "Human"
-host2 = "Avian"
-minimum_required_count = 0
-method = "counts"
-
 
 # In[18]:
 
 
-tree = read_in_tree_json(tree_path)
+tree = calenr.read_in_tree_json(cfg.tree_path)
 
 
 # In[ ]:
@@ -128,7 +113,7 @@ tree = read_in_tree_json(tree_path)
 """the outputs, aa_muts and nt_muts, are lists of amino acid mutations and nucleotide mutations on the tree. 
 every mutation on the tree is included."""
 
-aa_muts, nt_muts = gather_all_mut_on_tree(tree, gene)
+aa_muts, nt_muts = calenr.gather_all_mut_on_tree(tree, cfg.gene)
 
 
 # In[20]:
@@ -136,11 +121,11 @@ aa_muts, nt_muts = gather_all_mut_on_tree(tree, gene)
 
 """total_host_tips_on_tree is a dictionary, returning counts of the number of tips corresponding to each host 
 on the tree"""
-total_host_tips_on_tree = return_all_host_tips(tree, host1, host2, host_annotation)
+total_host_tips_on_tree = calenr.return_all_host_tips(tree, cfg.host1, cfg.host2, cfg.host_annotation)
 #print(total_host_tips_on_tree)
 
 """We will need to the total branch length of the tree, in terms of mutations."""
-total_tree_branch_length, tree_branch_lengths = return_total_tree_branch_length(tree)
+total_tree_branch_length, tree_branch_lengths = calenr.return_total_tree_branch_length(tree)
 #print(total_tree_branch_length)
 
 
@@ -149,7 +134,7 @@ total_tree_branch_length, tree_branch_lengths = return_total_tree_branch_length(
 
 """calculate enrichment scores for all mutations along the tree. must set method to be counts or proportions; 
 the host_counts variable in calculate_enrichmenet_scores is total_host_tips_on_tree"""
-scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annotation, minimum_required_count, method, total_host_tips_on_tree)
+scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(tree, aa_muts, nt_muts, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree, cfg.gene)
 
 
 # In[22]:
@@ -159,13 +144,13 @@ scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calcu
 df1 = pd.DataFrame.from_dict(scores_dict, orient="index")
 df2 = pd.DataFrame.from_dict(times_detected_dict, orient="index", columns=["total_times_detected_on_tree"])
 df3 = pd.DataFrame.from_dict(branch_lengths_dict, orient="index", columns=["branch_length_with_mutation"])
-df4 = pd.DataFrame.from_dict(host_counts_dict2, orient="index", columns=[host1, host2, "other"])
+df4 = pd.DataFrame.from_dict(host_counts_dict2, orient="index", columns=[cfg.host1, cfg.host2, "other"])
 
 """merge them together; pandas join is a merge on the index"""
 df5 = df1.join(df2.join(df3.join(df4)))
 
 """write to csv"""
-output_filename = gene + "_" + host1 + "_vs_" + host2 + "_data_" + current_date + ".tsv"
+output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_data_" + current_date + ".tsv"
 df5.to_csv(output_filename, sep="\t", header=True, index_label="mutation")
 
 
@@ -190,28 +175,21 @@ df5.to_csv(output_filename, sep="\t", header=True, index_label="mutation")
 # For this analysis, you will need to specify a few things: 
 # 1. **iterations:** iterations specifies how many times to simulate mutation gain or loss across the tree. 
 
-# In[32]:
-
-
-get_ipython().run_line_magic('run', 'simulate-mutation-gain-loss-markov-chain.ipynb')
-
-
 # In[34]:
 
 
 """Run the simulations. This can take a long time, so I've added in a time tracker"""
 
-iterations = 10
 
 start_time = time.time()
 
-sim_scores_dict, sim_times_detected_dict, branches_that_mutated = perform_simulations(tree, gene, iterations, total_tree_branch_length, host1, host2, host_annotation, minimum_required_count, method, total_host_tips_on_tree)
+sim_scores_dict, sim_times_detected_dict, branches_that_mutated = simmut.perform_simulations(tree, cfg.gene, cfg.iterations, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
 
 # print the amount of time this took
 total_time_seconds = time.time() - start_time
 total_time_minutes = total_time_seconds/60
 total_time_hours = total_time_minutes/60
-print("this took", total_time_seconds, "seconds (", total_time_minutes," minutes,", total_time_hours," hours) to generate", iterations, "simulated trees")
+print("this took", total_time_seconds, "seconds (", total_time_minutes," minutes,", total_time_hours," hours) to generate", cfg.iterations, "simulated trees")
 
 
 # In[11]:
@@ -252,7 +230,7 @@ for iteration in sim_times_detected_dict:
 df8 = df6.merge(df7, on=["simulation_iteration","index"])
 
 """write to csv"""
-output_filename = gene + "_" + host1 + "_vs_" + host2 + "_simulated_" + current_date + ".tsv"
+output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
 df8.to_csv(output_filename, sep="\t", header=True, index=False)
 
 
