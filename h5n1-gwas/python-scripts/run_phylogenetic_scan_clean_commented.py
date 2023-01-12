@@ -181,61 +181,97 @@ df5.to_csv(output_filename, sep="\t", header=True, index_label="mutation")
 """Run the simulations. This can take a long time, so I've added in a time tracker"""
 
 
-start_time = time.time()
+#start_time = time.time()
 
-sim_scores_dict, sim_times_detected_dict, branches_that_mutated = simmut.perform_simulations(tree, cfg.gene, cfg.iterations, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
+###sim_scores_dict, sim_times_detected_dict, branches_that_mutated = simmut.perform_simulations(tree, cfg.gene, cfg.iterations, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
 
-# print the amount of time this took
-total_time_seconds = time.time() - start_time
-total_time_minutes = total_time_seconds/60
-total_time_hours = total_time_minutes/60
-print("this took", total_time_seconds, "seconds (", total_time_minutes," minutes,", total_time_hours," hours) to generate", cfg.iterations, "simulated trees")
+import multiprocessing as mp
+from functools import partial
 
 
-# In[11]:
+#testargs = [(tree, cfg.gene, cfg.iterations, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree) for i in range(10)]
+if __name__ == "__main__":
+    start_time = time.time()
 
-
-"""convert each dictionary to a dataframe"""
-
-"""this dictionary is nested, so need to manually create i"""
-df6 = pd.DataFrame()
-for iteration in sim_scores_dict: 
-    x = pd.DataFrame.from_dict(sim_scores_dict[iteration], orient="index")
-    x['simulation_iteration'] = iteration
-    x.reset_index(inplace=True)
-    df6 = df6.append(x)
-
-df7 = pd.DataFrame()
-for iteration in sim_times_detected_dict: 
-    y = pd.DataFrame.from_dict(sim_times_detected_dict[iteration], orient="index", columns=["times_detected_on_tree"])
-    y["simulation_iteration"] = iteration
-    y.reset_index(inplace=True)
-    df7 = df7.append(y)
-
-
-# In[ ]:
+    pool = mp.Pool()
+    sim_part = partial(simmut.perform_simulations, cfg.gene, cfg.iterations, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
+    #sim_scores_dict, sim_times_detected_dict, branches_that_mutated = pool.map(sim_part, [tree for i in range(10)])
+    #sim_scores_dict, sim_times_detected_dict, branches_that_mutated = pool.map(sim_part, [tree for i in range(10)])
+    test = pool.map(sim_part, [tree for i in range(mp.cpu_count())])
+    '''sim_scores_dict = test[0:][0][0]
+    sim_times_detected_dict = test[0:][1]
+    branches_that_mutated = test[0:][2]'''
+    #sim_scores_dict, sim_times_detected_dict, branches_that_mutated = sim_part(tree)
+    pool.close()
+    pool.join()
+    total_time_seconds = time.time() - start_time
+    total_time_minutes = total_time_seconds/60
+    total_time_hours = total_time_minutes/60
+    print("this took", total_time_seconds, "seconds (", total_time_minutes," minutes,", total_time_hours," hours) to generate", cfg.iterations, "simulated trees")
 
 
 
+    """convert each dictionary to a dataframe"""
+
+    """this dictionary is nested, so need to manually create i"""
+
+    '''df6list = []
+    for iteration in sim_scores_dict: 
+        x = pd.DataFrame.from_dict(sim_scores_dict[iteration], orient="index")
+        x['simulation_iteration'] = iteration
+        x.reset_index(inplace=True)
+        df6list.append(x)
+    df6 = pd.concat(df6list)'''
+
+    '''df6list = []
+    for iter in range(len(sim_scores_dict)):
+        print(sim_scores_dict[iter])
+        for iteration in sim_scores_dict[iter]: 
+            x = pd.DataFrame.from_dict(sim_scores_dict[iter][iteration], orient="index")
+            x['simulation_iteration'] = iteration
+            x.reset_index(inplace=True)
+            df6list.append(x)
+    df6 = pd.concat(df6list)'''
+
+    df6list = []
+    count = 0
+    for iter in range(len(test)):
+        for iteration in test[iter][0]:
+            x = pd.DataFrame.from_dict(test[iter][0][iteration], orient="index")
+            x['simulation_iteration'] = count
+            count += 1
+            x.reset_index(inplace=True)
+            df6list.append(x)
+    df6 = pd.concat(df6list)
+
+    '''df7list = []
+    for iteration in sim_times_detected_dict: 
+        y = pd.DataFrame.from_dict(sim_times_detected_dict[iteration], orient="index", columns=["times_detected_on_tree"])
+        y["simulation_iteration"] = iteration
+        y.reset_index(inplace=True)
+        df7list.append(y)
+    df7 = pd.concat(df7list)'''
+
+    df7list = []
+    count = 0
+    for iter in range(len(test)):
+        for iteration in test[iter][1]:
+            y = pd.DataFrame.from_dict(test[iter][1][iteration], orient="index", columns=["times_detected_on_tree"])
+            y["simulation_iteration"] = count
+            count += 1
+            y.reset_index(inplace=True)
+            df7list.append(y)
+    df7 = pd.concat(df7list)
 
 
-# In[12]:
 
+    ## I guess for the simulations, I don't record the distribution of host counts for each mutation
+    # df8 = pd.DataFrame.from_dict(branch_lengths_dict, orient="index", columns=["branch_length_with_mutation"])
+    # df9 = pd.DataFrame.from_dict(host_counts_dict2, orient="index", columns=[host1, host2, "other"])
 
-## I guess for the simulations, I don't record the distribution of host counts for each mutation
-# df8 = pd.DataFrame.from_dict(branch_lengths_dict, orient="index", columns=["branch_length_with_mutation"])
-# df9 = pd.DataFrame.from_dict(host_counts_dict2, orient="index", columns=[host1, host2, "other"])
+    """merge them together; pandas join is a merge on the index"""
+    df8 = df6.merge(df7, on=["simulation_iteration","index"])
 
-"""merge them together; pandas join is a merge on the index"""
-df8 = df6.merge(df7, on=["simulation_iteration","index"])
-
-"""write to csv"""
-output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
-df8.to_csv(output_filename, sep="\t", header=True, index=False)
-
-
-# In[ ]:
-
-
-
-
+    """write to csv"""
+    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
+    df8.to_csv(output_filename, sep="\t", header=True, index=False)

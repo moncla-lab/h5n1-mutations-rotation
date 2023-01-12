@@ -76,6 +76,7 @@ def return_no_muts_tree(input_tree, gene):
     
     # we need to make a copy, otherwise this will alter the no muts tree
     tree = copy.deepcopy(input_tree)
+    #tree = copy.copy(input_tree)
     
     for k in tree.Objects:
                 
@@ -133,6 +134,9 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
     # do a simple assignment, then both no_muts_tree and tree will point to the same object in memory, which is not
     # what we want. this is explained here: https://medium.com/@thawsitt/assignment-vs-shallow-copy-vs-deep-copy-in-python-f70c2f0ebd86
     tree = copy.deepcopy(no_muts_tree)
+    #tree = copy.copy(no_muts_tree)
+
+    testdata = []
 
     # my fake mutation is going to be W1M for wild-type 1 mutant
     for k in tree.Objects:
@@ -149,6 +153,7 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
             parent_div = k.parent.traits['node_attrs']['div']
 
         branch_length = divergence - parent_div
+        testdata.append(branch_length)
         
         # find the most recent mutated parent (this could be the parent node, grandparent, etc...)
         most_recent_mutated_parent = return_most_recent_mutated_node(k.parent, gene)
@@ -178,7 +183,7 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
 # In[1]:
 
 
-def perform_simulations(input_tree, gene, iterations, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts):
+def perform_simulations(gene, iterations, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts, input_tree):
     
     no_muts_tree = return_no_muts_tree(input_tree, gene)
 
@@ -186,6 +191,7 @@ def perform_simulations(input_tree, gene, iterations, total_tree_branch_length, 
     branches_that_mutated = {}
     scores_dict_all = {}
     
+
     for i in range(iterations):
         sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
         scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
