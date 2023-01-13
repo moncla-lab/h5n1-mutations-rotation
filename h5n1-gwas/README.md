@@ -4,10 +4,11 @@ This repository contains code for developing GWAS methods for finding mutations 
 
 Jupyter notebooks converted to python files with the following variables now defined in config.py:
   * tree_path
+  * baltic_path
   * host_annotation
   * gene
   * host1
   * host2
-  * minimum_required_count
   * method
+  * minimum_required_count
   * iterations
