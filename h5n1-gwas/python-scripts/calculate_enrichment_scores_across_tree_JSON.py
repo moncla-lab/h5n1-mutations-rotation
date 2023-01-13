@@ -16,9 +16,6 @@
 
 # ## Infer each mutation that occurs across the tree
 
-# In[3]:
-
-import config as cfg
 
 import json
 
@@ -38,11 +35,8 @@ def read_in_tree_json(tree_path):
     #tree=bt.loadJSON(tree_object,json_translation)
     tree,meta=bt.loadJSON(tree_json,json_translation)
     
-
     return(tree)
 
-
-# In[5]:
 
 
 """count the number of tips on the tree corresponding to each host category"""
@@ -59,7 +53,6 @@ def return_all_host_tips(tree, host1, host2, host_annotation):
     return(host_counts)
 
 
-# In[6]:
 
 
 """this function traverses the tree, from root to tip, and records 2 quantites:
@@ -86,7 +79,6 @@ def return_total_tree_branch_length(tree):
     return(total_branch_length, branch_lengths)
 
 
-# In[7]:
 
 
 """Traverse the tree from root to tip. On each branch, tips and nodes, gather every nucleotide and amino acid 
@@ -114,7 +106,6 @@ def gather_all_mut_on_tree(tree, gene):
     return(all_aa_muts, all_nt_muts)
 
 
-# In[8]:
 
 
 """return the total number of times that the mutation arises on the phylogeny. This includes instances of mutation 
@@ -134,7 +125,6 @@ def return_number_times_on_tree(tree, mut, gene):
     return(times_on_tree)
 
 
-# In[9]:
 
 
 """return the total branch length for all branches on which the mutation arises, added together. This includes 
@@ -166,7 +156,6 @@ def return_branch_length_mut_on_tree(tree, mut, gene):
     return(branch_length)
 
 
-# In[10]:
 
 
 """given a branch and gene, return the mutations present on that branch"""
@@ -180,8 +169,6 @@ def return_muts_on_branch(branch, gene):
                             
     return(muts)
 
-
-# In[11]:
 
 
 """Given a starting internal node, and a tip you would like to end at, traverse the full path from that node to
@@ -224,7 +211,6 @@ def return_all_muts_on_path_to_tip(starting_node, ending_tip, gene, muts, host_a
     return(host, muts)
 
 
-# In[12]:
 
 
 """at times, will need to check whether the revertant mutation occcurs downstream. Return the revertant mutation"""
@@ -239,7 +225,6 @@ def return_opposite_mutation(mut):
     return(opposite)
 
 
-# In[18]:
 
 
 """given a tree, mutation, and gene, return the number of times that mutation is present in each host"""
@@ -285,15 +270,12 @@ def return_host_distribution_mutation(tree, mut, gene, host1, host2, host_annota
     return(host_counts_dict)
 
 
-# In[ ]:
-
 
 
 
 
 # ## Calculate the enrichment scores
 
-# In[4]:
 
 
 """calculate an enrichment score for an individual mutation, based on the counts across hosts"""
@@ -324,7 +306,6 @@ def calculate_enrichment_score_counts(mut_counts_dict, host1, host2, host_counts
     return(oddsr, p)
 
 
-# In[5]:
 
 
 """calculate an enrichment score for an individual mutation, based on the counts across hosts"""
@@ -355,7 +336,6 @@ def calculate_enrichment_score_proportions(mut_counts_dict, host1, host2, host_c
     return(score)
 
 
-# In[6]:
 
 
 """for a tree and all amino acid mutations, calculate the enrichment scores across the tree"""
@@ -390,13 +370,11 @@ def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annot
     return(scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2)
 
 
-# In[ ]:
 
 
 
 
 
-# In[ ]:
 
 
 
