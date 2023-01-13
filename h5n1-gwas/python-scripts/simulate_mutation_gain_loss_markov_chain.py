@@ -32,6 +32,8 @@ import re,copy, imp
 import pandas as pd 
 import numpy as np
 
+import pickle
+
 # for this to work, you will need to download the most recent version of baltic, available here 
 bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
 
@@ -118,10 +120,11 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
     # we have to make a copy here. if not, then the new mutations will be appended to the original tree. If we just
     # do a simple assignment, then both no_muts_tree and tree will point to the same object in memory, which is not
     # what we want. this is explained here: https://medium.com/@thawsitt/assignment-vs-shallow-copy-vs-deep-copy-in-python-f70c2f0ebd86
-    tree = copy.deepcopy(no_muts_tree)
+    #tree = copy.deepcopy(no_muts_tree)
     #tree = copy.copy(no_muts_tree)
 
-    testdata = []
+    tree = pickle.loads(pickled_tree)
+
 
     # my fake mutation is going to be W1M for wild-type 1 mutant
     for k in tree.Objects:
@@ -138,7 +141,6 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
             parent_div = k.parent.traits['node_attrs']['div']
 
         branch_length = divergence - parent_div
-        testdata.append(branch_length)
         
         # find the most recent mutated parent (this could be the parent node, grandparent, etc...)
         most_recent_mutated_parent = return_most_recent_mutated_node(k.parent, gene)
@@ -167,8 +169,9 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
 
 
 def init_tree(input_tree, gene):
-    global no_muts_tree
+    global pickled_tree
     no_muts_tree = return_no_muts_tree(input_tree, gene)
+    pickled_tree = pickle.dumps(no_muts_tree, -1) # -1 just guarantees highest pickle profile
 
 
 
@@ -178,7 +181,7 @@ def perform_simulations(gene, total_tree_branch_length, host1, host2,host_annota
     scores_dict_all = {}
     
     for i in range(iterations):
-        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
+        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(pickled_tree, total_tree_branch_length, branches_that_mutated, gene)
         scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
         times_detected_all[i] = times_detected_dict
         scores_dict_all[i] = scores_dict

@@ -20,4 +20,4 @@ method = "counts"
 minimum_required_count = 0
 
 """Specify the number of simulations to perform"""
-iterations = 100
+iterations = 10000
