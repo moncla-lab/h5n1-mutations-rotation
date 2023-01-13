@@ -22,7 +22,6 @@
 # 
 # where A, B, C, and D are counts of the mutation's presence and absence in host 1 and host 2. The odds ratio is then calculated as: `OR = (A * D)/(B * C)`
 
-# In[1]:
 
 import config as cfg
 
@@ -36,14 +35,6 @@ import numpy as np
 # for this to work, you will need to download the most recent version of baltic, available here 
 bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
 
-
-# In[ ]:
-
-
-
-
-
-# In[5]:
 
 
 def simulate_gain_loss(branch_length, total_tree_branch_length):
@@ -66,8 +57,6 @@ def simulate_gain_loss(branch_length, total_tree_branch_length):
         
     return(mutation)
 
-
-# In[2]:
 
 
 """this function deletes all amino acid mutations from the tree"""
@@ -101,8 +90,6 @@ def return_no_muts_tree(input_tree, gene):
     return(tree)
 
 
-# In[3]:
-
 
 def return_most_recent_mutated_node(node, gene):
     """given an internal node, traverse back up the tree to find a parental node that has a mutation annotation.
@@ -124,8 +111,6 @@ def return_most_recent_mutated_node(node, gene):
     
     return(parent_node)
 
-
-# In[3]:
 
 
 def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene):
@@ -180,18 +165,18 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
     return(tree, branches_that_mutated)
 
 
-# In[1]:
 
-
-def perform_simulations(gene, iterations, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts, input_tree):
-    
+def init_tree(input_tree, gene):
+    global no_muts_tree
     no_muts_tree = return_no_muts_tree(input_tree, gene)
 
+
+
+def perform_simulations(gene, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts, iterations):
     times_detected_all = {}
     branches_that_mutated = {}
     scores_dict_all = {}
     
-
     for i in range(iterations):
         sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
         scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
@@ -199,16 +184,3 @@ def perform_simulations(gene, iterations, total_tree_branch_length, host1, host2
         scores_dict_all[i] = scores_dict
 
     return(scores_dict_all, times_detected_all, branches_that_mutated)
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
