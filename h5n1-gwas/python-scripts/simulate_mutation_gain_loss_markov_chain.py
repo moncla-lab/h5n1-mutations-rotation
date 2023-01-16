@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# # Simulate mutation gain and loss as a markov chain
+# Simulate mutation gain and loss as a markov chain
 # 
 # Based off methodology described in [Pascoe et al](https://sfamjournals.onlinelibrary.wiley.com/doi/10.1111/1462-2920.13051) and [Sheppard et al](https://www.pnas.org/doi/10.1073/pnas.1305559110)
 # 
@@ -22,32 +19,19 @@
 # 
 # where A, B, C, and D are counts of the mutation's presence and absence in host 1 and host 2. The odds ratio is then calculated as: `OR = (A * D)/(B * C)`
 
-
-import config as cfg
+from math import exp
+import random
 
 import calculate_enrichment_scores_across_tree_JSON as calenr
-
-import glob, json
-import re,copy, imp
-import pandas as pd 
-import numpy as np
-
-import pickle
-
-# for this to work, you will need to download the most recent version of baltic, available here 
-bt = imp.load_source('baltic', '/Users/jort/coding/baltic/baltic/baltic.py')
+import tree_manager as tm
 
 
 
 def simulate_gain_loss(branch_length, total_tree_branch_length):
-    from math import exp
-    import random
-    
+
     rate = 1/total_tree_branch_length
     
     probability_stay_same = (1.0+exp(-2.0*branch_length*rate))/2.0
-    #probability_stay_same = (1.0+exp(-2.0*branch_length*rate))/10.0
-    #probability_stay_same = ((1.0+exp(-2.0*branch_length*rate))/2.0)*2500  # does it matter if I say you have to hit the right site? 
     
     # pick a random number between 0 and 1.0
     value = random.random()
@@ -57,39 +41,7 @@ def simulate_gain_loss(branch_length, total_tree_branch_length):
     else:
         mutation = 1
         
-    return(mutation)
-
-
-
-"""this function deletes all amino acid mutations from the tree"""
-
-def return_no_muts_tree(input_tree, gene):
-    
-    # we need to make a copy, otherwise this will alter the no muts tree
-    tree = copy.deepcopy(input_tree)
-    #tree = copy.copy(input_tree)
-    
-    for k in tree.Objects:
-                
-        if 'mutations' not in k.traits['branch_attrs']:
-            k.traits['branch_attrs']['mutations'] = {}        
-        if gene not in k.traits['branch_attrs']['mutations']:
-            k.traits['branch_attrs']['mutations'][gene] = []
-        else:
-            k.traits['branch_attrs']['mutations'][gene] = []
-            
-            
-        if 'branch_attrs' not in k.parent.traits:
-            k.parent.traits = {'branch_attrs':{}}
-        if 'mutations' not in k.parent.traits['branch_attrs']:
-            k.parent.traits['branch_attrs']['mutations'] = {} 
-        if gene not in k.parent.traits['branch_attrs']['mutations']:
-            k.parent.traits['branch_attrs']['mutations'][gene] = []
-        else:
-            k.parent.traits['branch_attrs']['mutations'][gene] = []
-
-    
-    return(tree)
+    return mutation
 
 
 
@@ -99,32 +51,18 @@ def return_most_recent_mutated_node(node, gene):
     starting state for the mutation you are adding"""
     
     if node.traits['branch_attrs']['mutations'][gene] == []:
-        
         if node.parent !=None:
             parent_node = return_most_recent_mutated_node(node.parent, gene)
-        
         else:
-            #print("root is proper parent")
             parent_node = node
-    
     else: 
-        #print("current node has proper length")
         parent_node = node
     
-    return(parent_node)
+    return parent_node
 
 
 
-def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene):
-    
-    # we have to make a copy here. if not, then the new mutations will be appended to the original tree. If we just
-    # do a simple assignment, then both no_muts_tree and tree will point to the same object in memory, which is not
-    # what we want. this is explained here: https://medium.com/@thawsitt/assignment-vs-shallow-copy-vs-deep-copy-in-python-f70c2f0ebd86
-    #tree = copy.deepcopy(no_muts_tree)
-    #tree = copy.copy(no_muts_tree)
-
-    tree = pickle.loads(pickled_tree)
-
+def simulate_gain_loss_as_markov_chain(tree, total_tree_branch_length, branches_that_mutated, gene):
 
     # my fake mutation is going to be W1M for wild-type 1 mutant
     for k in tree.Objects:
@@ -146,12 +84,12 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
         most_recent_mutated_parent = return_most_recent_mutated_node(k.parent, gene)
         parent_mut_state = most_recent_mutated_parent.traits['branch_attrs']['mutations'][gene]
         
-        """given the length of the current branch and the total tree branch length, perform a random draw to 
-        decide whether to mutate. A result of 1 means mutate, 0 means do not mutate""" 
+        # given the length of the current branch and the total tree branch length, perform a random draw to 
+        # decide whether to mutate. A result of 1 means mutate, 0 means do not mutate
         mutation = simulate_gain_loss(branch_length, total_tree_branch_length)
                 
         if mutation == 1:  # if we've mutated
-            
+
             # add branch to dictionary for plotting later 
             if k.name in branches_that_mutated:
                 branches_that_mutated[k.name]["times_mutated"] += 1
@@ -164,26 +102,22 @@ def simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, b
             elif parent_mut_state == ['W1M']:
                 k.traits['branch_attrs']['mutations'][gene] = ['M1W']
                 
-    return(tree, branches_that_mutated)
+    return tree, branches_that_mutated
 
 
 
-def init_tree(input_tree, gene):
-    global pickled_tree
-    no_muts_tree = return_no_muts_tree(input_tree, gene)
-    pickled_tree = pickle.dumps(no_muts_tree, -1) # -1 just guarantees highest pickle profile
-
-
-
-def perform_simulations(gene, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts, iterations):
+def perform_simulations(pickled_tree, gene, total_tree_branch_length, host1, host2,host_annotation, min_required_count, method, host_counts, iterations):
     times_detected_all = {}
     branches_that_mutated = {}
     scores_dict_all = {}
     
     for i in range(iterations):
-        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(pickled_tree, total_tree_branch_length, branches_that_mutated, gene)
+        # We need to get a fresh copy of no_muts_tree from pickled_tree.
+        # If not, then the new mutations will be appended to the original tree or to previous simulated trees.
+        no_muts_tree = tm.get_clean_tree_copy(pickled_tree)
+        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
         scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
         times_detected_all[i] = times_detected_dict
         scores_dict_all[i] = scores_dict
 
-    return(scores_dict_all, times_detected_all, branches_that_mutated)
+    return scores_dict_all, times_detected_all, branches_that_mutated

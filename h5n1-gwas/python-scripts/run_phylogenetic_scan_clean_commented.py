@@ -1,6 +1,3 @@
-##!/usr/bin/env python
-## coding: utf-8
-
 ## Run phylogenetic scan for mutations enriched in different hosts
 ## 
 ## This jupyter notebook contains commands to load the necessary dependencies, and perform the gene-wide scan for mutations enriched in different host species. The way I've structured this code is by coding the actual computational components of the method into other scripts/documents, and then simply calling them here. My intention is that this should avoid making edits to the underlying code, and instead altering parameters like the number of simulated iterations, the input tree, required counts, etc... The real heft of the method is coded in 2 other notebooks: `calculate-enrichment-scores` and `simulate-mutation-gain-loss-markov-chain`. This notebook will read those notebooks in, and run them. 
@@ -24,42 +21,23 @@
 ## 
 ## One way to control for this issue is to evaluate how skewed counts among these hosts are assuming no selection at all. For example, if we placed mutations onto the tree randomly, with no underlying selection, how frequently would we see ones that are significantly enriched in one host or the other by the odds ratio? By definition, these associations would be due to chance alone. We can then use this "null distribution" to find examples in our true tree that are more skewed than we see in this random, null. To do this, we take the tree and strip it of its mutations. We then simulate a single mutation that toggles on and off on the tree and count how many times it is found in human and avian tips as above. For each simulated tree, we calculate the same odds ratio and p-value. We do this many times to generate a distribution of odds ratios and p-values in these simulated datasets. We can then use these distributions as null distributions, and take the most extreme 5% as our cutoff for statistical significance. 
 
-"""import modules we will need. Pandas and numpy are for manipulating dataframes, time is for timestamps, glob 
-is for manuevering through shell directries, and json is for processing json files"""
 
-import glob
-import json
+## Import modules we will need
 import pandas as pd 
-import numpy as np
 import time
 import multiprocessing as mp
 from functools import partial
 
-"""This is a module for running R within a juyter notebook. This is not a recommended way to do plotting, but
-one that I have maintained because I'm pretty dependent on ggplot at this point"""
-import rpy2
-
-
-
-"""Import additional python modules.
-All functions, excluding get_iteration_list, are defined in the first two modules. Importing the modules will allow all
-of the functions coded in those notebooks to be available in this one. The first notebook does part 1, and the second
-does part 2. Additionally, all config data which must be specificed by the user is defined in the config file."""
+## Import additional python modules
+## All functions, excluding get_iteration_list, are defined in the first three modules. Importing the modules will allow all
+## of the functions coded in those notebooks to be available in this one. The first notebook does part 1, and the second
+## does part 2. Functions for loading and manipulating trees are contained in the third. Additionally, all config data
+## which must be specificed by the user is defined in the config file.
 import calculate_enrichment_scores_across_tree_JSON as calenr
 import simulate_mutation_gain_loss_markov_chain as simmut
+import tree_manager as tm
 import config as cfg
 
-
-
-## There are a couple different tools that can be used to parse trees, but my preferred is baltic. Baltic is a tool 
-## written in python by Gytis Dudas, and available here: https://github.com/evogytis/baltic. If installing via pip (recommended), 
-## import with `import baltic as bt`. Otherwise, import with imp from a local source file specified in the config file
-    ##pip
-#import baltic as bt
-
-    ##local
-import imp
-bt = imp.load_source('baltic', cfg.baltic_path)
 
 
 ## One thing I really like doing is appending the current date to all my code and output files. This helps me 
@@ -71,10 +49,10 @@ current_date = str(date.today())
 
 
 
-## Function to create a list with total iterations evenly split among number of cores for multiprocessing
 def get_iteration_list(iterations, cores):
-    d,r = divmod(iterations, cores)
-    return([d+1]*r + [d]*(cores-r))
+    """Function to create a list with total iterations evenly split among number of cores for multiprocessing"""
+    div, rem = divmod(iterations, cores)
+    return [div+1]*rem + [div]*(cores-rem)
 
 
 
@@ -92,8 +70,8 @@ if __name__ == "__main__":
     ## To run this on amino acids, put in the gene name under `gene`. To run on nucleotide mutations, replace gene with `nuc`. 
 
 
-    ## Load tree
-    tree = calenr.read_in_tree_json(cfg.tree_path)
+    ## Load tree, no_muts_tree, and pickled_tree
+    tree, no_muts_tree, pickled_tree = tm.init_trees()
 
     ## Gather all mutations. The outputs, aa_muts and nt_muts, are lists of amino acid mutations
     ## and nucleotide mutations on the tree. Every mutation on the tree is included.
@@ -130,11 +108,6 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
     ## Part 2: simulate mutation gain and loss across the tree to generate a null 
     ## 
     ## The output for `sims_times_detected` will be the number of times in each iteration that the simulated mutation arose. This includes occurrences on internal nodes and on terminal nodes. 
@@ -149,11 +122,8 @@ if __name__ == "__main__":
     cores = mp.cpu_count()
     iter_list = get_iteration_list(cfg.iterations, cores)
 
-    ## Initialize the no_muts_tree
-    simmut.init_tree(tree, cfg.gene)
-
     ## Create partial function for simmut.perform_simulations with all arguments excluding iterations
-    sim_part = partial(simmut.perform_simulations, cfg.gene, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
+    sim_part = partial(simmut.perform_simulations, pickled_tree, cfg.gene, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
 
     ## Start timer
     start_time = time.time()
@@ -204,10 +174,6 @@ if __name__ == "__main__":
             df7list.append(y)
     df7 = pd.concat(df7list)
 
-    ## I guess for the simulations, I don't record the distribution of host counts for each mutation
-    # df8 = pd.DataFrame.from_dict(branch_lengths_dict, orient="index", columns=["branch_length_with_mutation"])
-    # df9 = pd.DataFrame.from_dict(host_counts_dict2, orient="index", columns=[host1, host2, "other"])
-
     ## Merge them together; pandas join is a merge on the index
     df8 = df6.merge(df7, on=["simulation_iteration","index"])
 
@@ -215,30 +181,15 @@ if __name__ == "__main__":
     output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
     df8.to_csv(output_filename, sep="\t", header=True, index=False)
 
-    test_dict_length = {}
-    test_dict_times = {}
-    #test_list_length = []
-    #test_list_times = []
+    ## Create dataframe with branch lengths and the number of times that branch mutated in all simulations
+    sim_branch_length_dict = {}
+    sim_branch_mut_times_dict = {}
     for core in range(len(sim_data)):
         for x in sim_data[core][2]:
-            test_dict_length[x] = sim_data[core][2][x]['branch_length']
-            test_dict_times[x] = test_dict_times.get(x, 0) + sim_data[core][2][x]['times_mutated']
-            #test_list_length.append(sim_data[core][2][x]['branch_length'])
-            #test_list_times.append(sim_data[core][2][x]['times_mutated'])
-    #df9 = pd.DataFrame(list(zip(test_list_length, test_list_times)), columns =['Length', 'Times'])
-    df10 = pd.DataFrame({'Length':pd.Series(test_dict_length),'Times':pd.Series(test_dict_times)})
+            sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
+            sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
+    df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
 
+    ## Write to csv
     output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_lengthVStimes_" + current_date + ".tsv"
-    df10.to_csv(output_filename, sep="\t", header=True, index=False)
-    
-    '''df9list = []
-    idx = 0
-    for core in range(len(sim_data)):
-        for iteration in sim_data[core][1]:
-            y = pd.DataFrame.from_dict(sim_data[core][2][iteration], orient="index", columns=["times_detected_on_tree"])
-            y["simulation_iteration"] = idx
-            idx += 1
-            y.reset_index(inplace=True)
-            df7list.append(y)
-    df9 = pd.concat(df9list)
-    print(df9)'''
+    df9.to_csv(output_filename, sep="\t", header=True, index=False)
