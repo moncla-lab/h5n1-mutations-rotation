@@ -62,7 +62,7 @@ def return_most_recent_mutated_node(node, gene):
 
 
 
-def simulate_gain_loss_as_markov_chain(tree, total_tree_branch_length, branches_that_mutated, gene):
+def simulate_gain_loss_as_markov_chain(tree, gene, total_tree_branch_length, branches_that_mutated, all_branches):
 
     # my fake mutation is going to be W1M for wild-type 1 mutant
     for k in tree.Objects:
@@ -87,22 +87,33 @@ def simulate_gain_loss_as_markov_chain(tree, total_tree_branch_length, branches_
         # given the length of the current branch and the total tree branch length, perform a random draw to 
         # decide whether to mutate. A result of 1 means mutate, 0 means do not mutate
         mutation = simulate_gain_loss(branch_length, total_tree_branch_length)
-                
+
         if mutation == 1:  # if we've mutated
+
+            if k.name in all_branches:
+                all_branches[k.name]["times_mutated"] += 1
+            else:
+                all_branches[k.name] = {"branch_length":branch_length, "times_mutated":1}
 
             # add branch to dictionary for plotting later 
             if k.name in branches_that_mutated:
                 branches_that_mutated[k.name]["times_mutated"] += 1
+
             else:
                 branches_that_mutated[k.name] = {"branch_length":branch_length, "times_mutated":1}
+
             
             #print("we are mutating branch ", k)
             if parent_mut_state == [] or parent_mut_state == ['M1W']:
                 k.traits['branch_attrs']['mutations'][gene] = ['W1M']
             elif parent_mut_state == ['W1M']:
                 k.traits['branch_attrs']['mutations'][gene] = ['M1W']
+
+        elif mutation == 0:
+            if not k.name in all_branches:
+                all_branches[k.name] = {"branch_length":branch_length, "times_mutated":0}
                 
-    return tree, branches_that_mutated
+    return tree, branches_that_mutated, all_branches
 
 
 
@@ -110,14 +121,15 @@ def perform_simulations(pickled_tree, gene, total_tree_branch_length, host1, hos
     times_detected_all = {}
     branches_that_mutated = {}
     scores_dict_all = {}
+    all_branches = {}
     
     for i in range(iterations):
         # We need to get a fresh copy of no_muts_tree from pickled_tree.
         # If not, then the new mutations will be appended to the original tree or to previous simulated trees.
         no_muts_tree = tm.get_clean_tree_copy(pickled_tree)
-        sim_tree, branches_that_mutated = simulate_gain_loss_as_markov_chain(no_muts_tree, total_tree_branch_length, branches_that_mutated, gene)
+        sim_tree, branches_that_mutated, all_branches = simulate_gain_loss_as_markov_chain(no_muts_tree, gene, total_tree_branch_length, branches_that_mutated, all_branches)
         scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(sim_tree, ['W1M'],['W1M'], host1, host2, host_annotation, min_required_count, method, host_counts, gene)
         times_detected_all[i] = times_detected_dict
         scores_dict_all[i] = scores_dict
 
-    return scores_dict_all, times_detected_all, branches_that_mutated
+    return scores_dict_all, times_detected_all, branches_that_mutated, all_branches

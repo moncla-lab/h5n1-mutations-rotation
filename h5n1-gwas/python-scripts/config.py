@@ -1,6 +1,7 @@
 ## Specify the local source file containing your Auspice JSON tree
 #tree_path = "/Users/jort/coding/h5n1-mutations-rotation/h5n1-gwas/test-data/flu_avian_h5n1_pb2.json"
 tree_path = "/Users/jort/coding/h5n1-mutations-rotation/base-build/auspice/flu_avian_h5n1_pb2.json"
+#tree_path = "/Users/jort/coding/h5n1-mutations-rotation/base-build/auspice/flu_avian_h5n1_ha.json"
 
 
 ## There are a couple different tools that can be used to parse trees, but my preferred is baltic. Baltic is a tool written
@@ -26,4 +27,4 @@ method = "counts"
 minimum_required_count = 0
 
 ## Specify the number of simulations to perform
-iterations = 10000
+iterations = 200000

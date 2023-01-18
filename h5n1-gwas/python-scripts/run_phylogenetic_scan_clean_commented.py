@@ -146,7 +146,7 @@ if __name__ == "__main__":
     ## Convert simulation data to dataframes
     ## sim_data[core][field][iteration]
         ## core = [0, ..., mp.cpu_count() - 1]
-        ## field = [0, 1, 2]; 0 = sim_scores, 1 = sim_times_detected, 2 = branches_that_mutated
+        ## field = [0, 1, 2, 3]; 0 = sim_scores, 1 = sim_times_detected, 2 = branches_that_mutated, 3 = all_branches_dict
         ## iteration = iter_list[core]
     ## These dictionaries are nested, and each core uses same indexing, so need to manually create idx
 
@@ -181,7 +181,8 @@ if __name__ == "__main__":
     output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
     df8.to_csv(output_filename, sep="\t", header=True, index=False)
 
-    ## Create dataframe with branch lengths and the number of times that branch mutated in all simulations
+
+    ## Create dataframe with branch lengths and the number of times that branch mutated in all simulations (excludes non-mutated branches)
     sim_branch_length_dict = {}
     sim_branch_mut_times_dict = {}
     for core in range(len(sim_data)):
@@ -189,7 +190,21 @@ if __name__ == "__main__":
             sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
             sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
     df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
-
-    ## Write to csv
     output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_lengthVStimes_" + current_date + ".tsv"
     df9.to_csv(output_filename, sep="\t", header=True, index=False)
+
+
+    ## Create dataframe with all branches, lengths and the number of times mutated in all simulations
+    sim_branch_name_dict = {}
+    sim_branch_length_dict = {}
+    sim_branch_mut_times_dict = {}
+    for core in range(len(sim_data)):
+        for x in sim_data[core][3]:
+            sim_branch_name_dict[x] = x
+            sim_branch_length_dict[x] = sim_data[core][3][x]['branch_length']
+            sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][3][x]['times_mutated']
+    df10 = pd.DataFrame({'Name':pd.Series(sim_branch_name_dict),'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
+
+    ## Write to csv
+    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_all_branches_" + current_date + ".tsv"
+    df10.to_csv(output_filename, sep="\t", header=True, index=False)
