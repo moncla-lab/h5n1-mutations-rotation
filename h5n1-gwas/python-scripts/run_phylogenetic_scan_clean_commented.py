@@ -37,7 +37,7 @@ import calculate_enrichment_scores_across_tree_JSON as calenr
 import simulate_mutation_gain_loss_markov_chain as simmut
 import tree_manager as tm
 import config as cfg
-
+import write_files
 
 
 ## One thing I really like doing is appending the current date to all my code and output files. This helps me 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
 
     ## Load tree, no_muts_tree, and pickled_tree
-    tree, no_muts_tree, pickled_tree = tm.init_trees()
+    json_tree, tree, no_muts_tree, pickled_tree = tm.init_trees()
 
     ## Gather all mutations. The outputs, aa_muts and nt_muts, are lists of amino acid mutations
     ## and nucleotide mutations on the tree. Every mutation on the tree is included.
@@ -99,10 +99,6 @@ if __name__ == "__main__":
 
     ## Merge dataframes together; pandas join is a merge on the index
     df5 = df1.join(df2.join(df3.join(df4)))
-
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_data_" + current_date + ".tsv"
-    df5.to_csv(output_filename, sep="\t", header=True, index_label="mutation")
 
 
 
@@ -177,34 +173,36 @@ if __name__ == "__main__":
     ## Merge them together; pandas join is a merge on the index
     df8 = df6.merge(df7, on=["simulation_iteration","index"])
 
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
-    df8.to_csv(output_filename, sep="\t", header=True, index=False)
+    ## If in testing mode, create additional dataframes for simulation validation
+    if cfg.mode == 'testing':
+        ## Create dataframe with branch lengths and the number of times mutated in all simulations (excludes non-mutated branches)
+        sim_branch_length_dict = {}
+        sim_branch_mut_times_dict = {}
+        for core in range(len(sim_data)):
+            for x in sim_data[core][2]:
+                sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
+                sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
+        df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
+
+        ## Create dataframe with all branches, lengths and the number of times mutated in all simulations
+        sim_branch_name_dict = {}
+        sim_branch_length_dict = {}
+        sim_branch_mut_times_dict = {}
+        for core in range(len(sim_data)):
+            for x in sim_data[core][3]:
+                sim_branch_name_dict[x] = x
+                sim_branch_length_dict[x] = sim_data[core][3][x]['branch_length']
+                sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][3][x]['times_mutated']
+        df10 = pd.DataFrame({'Name':pd.Series(sim_branch_name_dict),'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
 
 
-    ## Create dataframe with branch lengths and the number of times that branch mutated in all simulations (excludes non-mutated branches)
-    sim_branch_length_dict = {}
-    sim_branch_mut_times_dict = {}
-    for core in range(len(sim_data)):
-        for x in sim_data[core][2]:
-            sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
-            sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
-    df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_lengthVStimes_" + current_date + ".tsv"
-    df9.to_csv(output_filename, sep="\t", header=True, index=False)
 
-
-    ## Create dataframe with all branches, lengths and the number of times mutated in all simulations
-    sim_branch_name_dict = {}
-    sim_branch_length_dict = {}
-    sim_branch_mut_times_dict = {}
-    for core in range(len(sim_data)):
-        for x in sim_data[core][3]:
-            sim_branch_name_dict[x] = x
-            sim_branch_length_dict[x] = sim_data[core][3][x]['branch_length']
-            sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][3][x]['times_mutated']
-    df10 = pd.DataFrame({'Name':pd.Series(sim_branch_name_dict),'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
-
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_all_branches_" + current_date + ".tsv"
-    df10.to_csv(output_filename, sep="\t", header=True, index=False)
+    ## Write output files
+    folder_name = write_files.make_next_folder()
+    write_files.write_config(folder_name)
+    write_files.write_baltic_tree(folder_name, tree)
+    write_files.write_json_tree(folder_name, json_tree)
+    if cfg.mode == 'testing':
+        write_files.write_dfs(folder_name, df5, df8, df9, df10)
+    else:
+        write_files.write_dfs(folder_name, df5, df8)

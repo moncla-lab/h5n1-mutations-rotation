@@ -12,6 +12,13 @@ tree_path = "/Users/jort/coding/h5n1-mutations-rotation/base-build/auspice/flu_a
 ## If baltic is installed locally, set baltic_path to the local source file
 baltic_path = "/Users/jort/coding/baltic/baltic/baltic.py" # or "pip"
 
+## Specify path and naming scheme for output folder
+## Sequential numbers will be added to the folder name to prevent overwriting data
+## e.g., for folder_name = "test_data", folders will be named "test_data_0", "test_data_1", etc.
+## These can be placed within an outer folder (created prior to running script) by specifying a folder_path
+folder_path = "GWAS Data/" # "" for no outer folder
+naming_scheme = "H5N1_PB2"
+
 ## For the tree you are reading in, you need to specify which attribute encodes the host value. For the avian 
 ## flu trees on nextstrain, this attribute is `host`. If you specified a different label, like `host_species` or 
 ## `Host`, you would need to change this. You can check this by manually looking at the tree json file in a text
@@ -27,4 +34,7 @@ method = "counts"
 minimum_required_count = 0
 
 ## Specify the number of simulations to perform
-iterations = 200000
+iterations = 10000
+
+## If mode == "testing", write additional simulation dataframes to csv files (df9, df10)
+mode = "testing"

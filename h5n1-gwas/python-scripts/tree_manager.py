@@ -12,21 +12,31 @@ else:
 
 
 
+def init_trees(tree_path = None, gene = None):
+    tree_path = tree_path or cfg.tree_path
+    gene = gene or cfg.gene
+    json_tree, orig_tree = read_in_tree_json(tree_path)
+    no_muts_tree = get_no_muts_tree(orig_tree, gene)
+    pickled_tree = pickle.dumps(no_muts_tree, -1)
+    return json_tree, orig_tree, no_muts_tree, pickled_tree
+
+
+
 def read_in_tree_json(input_tree):
     """read in a tree in json format"""
 
     with open(input_tree) as json_file:
-        tree_json = json.load(json_file)
+        json_tree = json.load(json_file)
 
     # Nextstrain tree jsons are broken into 2 components: metadata and tree. We just need the tree
     json_translation = {'absoluteTime':lambda k: k.traits['node_attrs']['num_date']['value'],'name':'name'} ## allows baltic to find correct attributes in JSON, height and name are required at a minimum
-    tree, meta = bt.loadJSON(tree_json, json_translation)
+    tree, meta = bt.loadJSON(json_tree, json_translation)
 
-    return tree
+    return json_tree, tree
 
 
 
-def get_no_muts_tree(orig_tree):
+def get_no_muts_tree(orig_tree, gene):
     """this function deletes all amino acid mutations from the tree"""
     
     # we need to make a copy, otherwise this will alter the no muts tree
@@ -36,49 +46,22 @@ def get_no_muts_tree(orig_tree):
         if 'mutations' not in k.traits['branch_attrs']:
             k.traits['branch_attrs']['mutations'] = {}
 
-        if cfg.gene not in k.traits['branch_attrs']['mutations']:
-            k.traits['branch_attrs']['mutations'][cfg.gene] = []
+        if gene not in k.traits['branch_attrs']['mutations']:
+            k.traits['branch_attrs']['mutations'][gene] = []
         else:
-            k.traits['branch_attrs']['mutations'][cfg.gene] = []    
+            k.traits['branch_attrs']['mutations'][gene] = []    
             
         if 'branch_attrs' not in k.parent.traits:
             k.parent.traits = {'branch_attrs':{}}
         if 'mutations' not in k.parent.traits['branch_attrs']:
             k.parent.traits['branch_attrs']['mutations'] = {} 
-        if cfg.gene not in k.parent.traits['branch_attrs']['mutations']:
-            k.parent.traits['branch_attrs']['mutations'][cfg.gene] = []
+        if gene not in k.parent.traits['branch_attrs']['mutations']:
+            k.parent.traits['branch_attrs']['mutations'][gene] = []
         else:
-            k.parent.traits['branch_attrs']['mutations'][cfg.gene] = []   
+            k.parent.traits['branch_attrs']['mutations'][gene] = []   
     return tree
-
-
-
-def init_trees(tree_path = None, gene = None):
-    tree_path = tree_path or cfg.tree_path
-    gene = gene or cfg.gene
-    orig_tree = read_in_tree_json(tree_path)
-    no_muts_tree = get_no_muts_tree(orig_tree)
-    pickled_tree = pickle.dumps(no_muts_tree, -1)
-    return orig_tree, no_muts_tree, pickled_tree
 
 
 
 def get_clean_tree_copy(pickled_tree):
     return pickle.loads(pickled_tree)
-
-
-# def get_all_branches(tree):
-#     branch_dict = {}
-#     for k in tree.Objects:
-#         divergence = k.traits['node_attrs']['div']
-
-#         if k.parent.traits == {}:
-#             parent_div = 0
-#         elif 'node_attrs' not in k.parent.traits:
-#             parent_div = 0
-#         else:
-#             parent_div = k.parent.traits['node_attrs']['div']
-
-#         branch_length = divergence - parent_div
-
-#         branch_dict[k.name] = {"branch_length": }
