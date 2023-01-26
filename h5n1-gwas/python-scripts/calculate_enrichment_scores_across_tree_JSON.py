@@ -269,36 +269,36 @@ def calculate_enrichment_score_counts(mut_counts_dict, host1, host2, host_counts
 
 
 
-def calculate_enrichment_score_proportions(mut_counts_dict, host1, host2, host_counts):
-    """calculate an enrichment score for an individual mutation, based on the counts across hosts"""
+# def calculate_enrichment_score_proportions(mut_counts_dict, host1, host2, host_counts):
+#     """calculate an enrichment score for an individual mutation, based on the counts across hosts"""
 
-    total_host1_tree = host_counts[host1]
-    total_host2_tree = host_counts[host2]
+#     total_host1_tree = host_counts[host1]
+#     total_host2_tree = host_counts[host2]
     
-    mut_host1 = mut_counts_dict[host1]
-    mut_host2 = mut_counts_dict[host2]
+#     mut_host1 = mut_counts_dict[host1]
+#     mut_host2 = mut_counts_dict[host2]
     
-    total_tips_in_tree = total_host1_tree + total_host2_tree
+#     total_tips_in_tree = total_host1_tree + total_host2_tree
     
-    # this is calculating this table as proportions
-    presence_host1 = (mut_host1)/total_tips_in_tree
-    absence_host1 = (total_host1_tree - mut_host1)/total_tips_in_tree
-    presence_host2 = (mut_host2)/total_tips_in_tree
-    absence_host2 = (total_host2_tree - mut_host2)/total_tips_in_tree
+#     # this is calculating this table as proportions
+#     presence_host1 = (mut_host1)/total_tips_in_tree
+#     absence_host1 = (total_host1_tree - mut_host1)/total_tips_in_tree
+#     presence_host2 = (mut_host2)/total_tips_in_tree
+#     absence_host2 = (total_host2_tree - mut_host2)/total_tips_in_tree
     
-    # if presence_host2 == 0:
-    #     presence_host2 = 1
-    # if absence_host1 == 0:
-    #     absence_host1 = 1
+#     # if presence_host2 == 0:
+#     #     presence_host2 = 1
+#     # if absence_host1 == 0:
+#     #     absence_host1 = 1
 
-    # this score is calculated in terms of its enrichment in host 1
-    # score = (presence_host1 * absence_host2)/(presence_host2 * absence_host1)
-    score = (presence_host1 + absence_host2) - (presence_host2 + absence_host1)
-    return score
+#     # this score is calculated in terms of its enrichment in host 1
+#     # score = (presence_host1 * absence_host2)/(presence_host2 * absence_host1)
+#     score = (presence_host1 + absence_host2) - (presence_host2 + absence_host1)
+#     return score
 
 
 
-def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annotation, min_required_count, method, host_counts, gene):
+def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annotation, min_required_count, host_counts, gene):
     """for a tree and all amino acid mutations, calculate the enrichment scores across the tree"""
 
     scores_dict = {}
@@ -306,10 +306,10 @@ def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annot
     branch_lengths_dict = {}
     host_counts_dict2 = {}
     
-    if method == "counts":
-        enrichment_calculation_function = calculate_enrichment_score_counts
-    elif method == "proportions":
-        enrichment_calculation_function = calculate_enrichment_score_proportions
+    # if method == "counts":
+    #     enrichment_calculation_function = calculate_enrichment_score_counts
+    # elif method == "proportions":
+    #     enrichment_calculation_function = calculate_enrichment_score_proportions
     
     for a in aa_muts:
         times_detected = return_number_times_on_tree(tree, a, gene)
@@ -323,7 +323,7 @@ def calculate_enrichment_scores(tree, aa_muts, nt_muts, host1, host2, host_annot
         total_tips_with_mut = host_counts_dict[host1] + host_counts_dict[host2] + host_counts_dict["other"]
 
         if total_tips_with_mut >= min_required_count:
-            enrichment_score,p_value = enrichment_calculation_function(host_counts_dict, host1, host2, host_counts)
+            enrichment_score,p_value = calculate_enrichment_score_counts(host_counts_dict, host1, host2, host_counts)
             #print(enrichment_score, total_tips_with_mut, host_counts_dict)
             scores_dict[a] = {"enrichment_score": enrichment_score, "pvalue":p_value}
     

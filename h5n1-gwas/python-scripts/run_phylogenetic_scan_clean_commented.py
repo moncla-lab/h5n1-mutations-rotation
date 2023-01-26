@@ -28,6 +28,7 @@ import time
 import multiprocessing as mp
 from functools import partial
 
+
 ## Import additional python modules
 ## All functions, excluding get_iteration_list, are defined in the first three modules. Importing the modules will allow all
 ## of the functions coded in those notebooks to be available in this one. The first notebook does part 1, and the second
@@ -37,7 +38,7 @@ import calculate_enrichment_scores_across_tree_JSON as calenr
 import simulate_mutation_gain_loss_markov_chain as simmut
 import tree_manager as tm
 import config as cfg
-
+import write_files
 
 
 ## One thing I really like doing is appending the current date to all my code and output files. This helps me 
@@ -71,7 +72,13 @@ if __name__ == "__main__":
 
 
     ## Load tree, no_muts_tree, and pickled_tree
-    tree, no_muts_tree, pickled_tree = tm.init_trees()
+    if cfg.reload_trees == True:
+        print("Reloading trees...")
+        json_tree, tree, no_muts_tree, pickled_tree = tm.init_pickled_trees(cfg.output_folder_path)
+        print("Finished loading trees")
+    else:
+        json_tree, tree, no_muts_tree, pickled_tree = tm.init_trees()
+    
 
     ## Gather all mutations. The outputs, aa_muts and nt_muts, are lists of amino acid mutations
     ## and nucleotide mutations on the tree. Every mutation on the tree is included.
@@ -86,7 +93,7 @@ if __name__ == "__main__":
 
     ## Calculate enrichment scores for all mutations along the tree. must set method to be counts or proportions; 
     ## the host_counts variable in calculate_enrichmenet_scores is total_host_tips_on_tree
-    scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(tree, aa_muts, nt_muts, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree, cfg.gene)
+    scores_dict, times_detected_dict, branch_lengths_dict, host_counts_dict2 = calenr.calculate_enrichment_scores(tree, aa_muts, nt_muts, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, total_host_tips_on_tree, cfg.gene)
 
 
 
@@ -99,10 +106,6 @@ if __name__ == "__main__":
 
     ## Merge dataframes together; pandas join is a merge on the index
     df5 = df1.join(df2.join(df3.join(df4)))
-
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_data_" + current_date + ".tsv"
-    df5.to_csv(output_filename, sep="\t", header=True, index_label="mutation")
 
 
 
@@ -123,7 +126,7 @@ if __name__ == "__main__":
     iter_list = get_iteration_list(cfg.iterations, cores)
 
     ## Create partial function for simmut.perform_simulations with all arguments excluding iterations
-    sim_part = partial(simmut.perform_simulations, pickled_tree, cfg.gene, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, cfg.method, total_host_tips_on_tree)
+    sim_part = partial(simmut.perform_simulations, pickled_tree, cfg.gene, total_tree_branch_length, cfg.host1, cfg.host2, cfg.host_annotation, cfg.minimum_required_count, total_host_tips_on_tree)
 
     ## Start timer
     start_time = time.time()
@@ -146,7 +149,7 @@ if __name__ == "__main__":
     ## Convert simulation data to dataframes
     ## sim_data[core][field][iteration]
         ## core = [0, ..., mp.cpu_count() - 1]
-        ## field = [0, 1, 2]; 0 = sim_scores, 1 = sim_times_detected, 2 = branches_that_mutated
+        ## field = [0, 1, 2, 3]; 0 = sim_scores, 1 = sim_times_detected, 2 = branches_that_mutated, 3 = all_branches_dict
         ## iteration = iter_list[core]
     ## These dictionaries are nested, and each core uses same indexing, so need to manually create idx
 
@@ -177,19 +180,36 @@ if __name__ == "__main__":
     ## Merge them together; pandas join is a merge on the index
     df8 = df6.merge(df7, on=["simulation_iteration","index"])
 
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_" + current_date + ".tsv"
-    df8.to_csv(output_filename, sep="\t", header=True, index=False)
+    ## If in testing mode, create additional dataframes for simulation validation
+    if cfg.testing_mode == True:
+        ## Create dataframe with branch lengths and the number of times mutated in all simulations (excludes non-mutated branches)
+        sim_branch_length_dict = {}
+        sim_branch_mut_times_dict = {}
+        for core in range(len(sim_data)):
+            for x in sim_data[core][2]:
+                sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
+                sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
+        df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
 
-    ## Create dataframe with branch lengths and the number of times that branch mutated in all simulations
-    sim_branch_length_dict = {}
-    sim_branch_mut_times_dict = {}
-    for core in range(len(sim_data)):
-        for x in sim_data[core][2]:
-            sim_branch_length_dict[x] = sim_data[core][2][x]['branch_length']
-            sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][2][x]['times_mutated']
-    df9 = pd.DataFrame({'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
+        ## Create dataframe with all branches, lengths and the number of times mutated in all simulations
+        sim_branch_name_dict = {}
+        sim_branch_length_dict = {}
+        sim_branch_mut_times_dict = {}
+        for core in range(len(sim_data)):
+            for x in sim_data[core][3]:
+                sim_branch_name_dict[x] = x
+                sim_branch_length_dict[x] = sim_data[core][3][x]['branch_length']
+                sim_branch_mut_times_dict[x] = sim_branch_mut_times_dict.get(x, 0) + sim_data[core][3][x]['times_mutated']
+        df10 = pd.DataFrame({'Name':pd.Series(sim_branch_name_dict),'Length':pd.Series(sim_branch_length_dict),'Times':pd.Series(sim_branch_mut_times_dict)})
 
-    ## Write to csv
-    output_filename = cfg.gene + "_" + cfg.host1 + "_vs_" + cfg.host2 + "_simulated_lengthVStimes_" + current_date + ".tsv"
-    df9.to_csv(output_filename, sep="\t", header=True, index=False)
+
+
+    ## Write output files
+    folder_name = write_files.make_next_folder()
+    write_files.write_config(folder_name)
+    write_files.write_baltic_tree(folder_name, tree)
+    write_files.write_json_tree(folder_name, json_tree)
+    if cfg.testing_mode == True:
+        write_files.write_dfs(folder_name, df5, df8, df9, df10)
+    else:
+        write_files.write_dfs(folder_name, df5, df8)
