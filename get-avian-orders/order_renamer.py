@@ -1,9 +1,12 @@
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+import os
 
+## change to directory with fasta files
+os.chdir("/Users/jort/coding/AvianOrders/")
 
-
-fasta_file_names = ["example_h5n1_ha.fasta", "example_h5n1_pb2.fasta"]
+## specify names of fasta files
+fasta_file_names = ["h5n1_ha.fasta", "h5n1_pb2.fasta"]
 
 
 
@@ -18,6 +21,7 @@ for entry in lines.split("\n"):
   if(len(entry_list)) > 1 and entry_list[0][0] != "#":
     species_dict[entry_list[0]] = entry_list[1]
 
+
 ## make dictionary to get avian order
 orders_dict = {}
 
@@ -31,7 +35,8 @@ for entry in lines.split("\n"):
   elif entry_list[1] == "g":
     orders_dict[entry_list[0]] = "galliforme"
   elif entry_list[1] == "o":
-    orders_dict[entry_list[0]] = "otheravian"
+    orders_dict[entry_list[0]] = "avian"
+
 
 ## get FASTA id with avian order as host
 def get_order_name(name):
@@ -47,9 +52,10 @@ def get_order_name(name):
     name_comps[8] = order
   return("|".join(name_comps))
 
+
 ## write FASTA file with new ids
 def write_order_fasta(fasta_file_name):
-  new_file_name = "".join([fasta_file_name.split(".")[0], "_avian_orders2.", fasta_file_name.split(".")[1]])
+  new_file_name = "".join([fasta_file_name.split(".")[0], "_avian_orders.", fasta_file_name.split(".")[1]])
   fasta_sequences = SeqIO.parse(open(fasta_file_name),'fasta')
   records = []
   for fasta in fasta_sequences:
@@ -58,6 +64,7 @@ def write_order_fasta(fasta_file_name):
     record = SeqRecord(sequence, new_name, "", "")
     records.append(record)
   SeqIO.write(records, new_file_name, "fasta")
+
 
 ## write new FASTA file for all files in list
 for name in fasta_file_names:
