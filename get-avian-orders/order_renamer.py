@@ -6,7 +6,7 @@ import os
 os.chdir("/Users/jort/coding/AvianOrders/")
 
 ## specify names of fasta files
-fasta_file_names = ["h5n1_ha.fasta", "h5n1_pb2.fasta"]
+fasta_file_names = ["h5n1_ha.copy.fasta"]
 
 
 
@@ -55,7 +55,8 @@ def get_order_name(name):
 
 ## write FASTA file with new ids
 def write_order_fasta(fasta_file_name):
-  new_file_name = "".join([fasta_file_name.split(".")[0], "_avian_orders.", fasta_file_name.split(".")[1]])
+  file_name_list = fasta_file_name.split(".")
+  new_file_name = "".join([".".join(file_name_list[0:len(file_name_list)-1]), "_avian_orders.", file_name_list[-1]])
   fasta_sequences = SeqIO.parse(open(fasta_file_name),'fasta')
   records = []
   for fasta in fasta_sequences:
