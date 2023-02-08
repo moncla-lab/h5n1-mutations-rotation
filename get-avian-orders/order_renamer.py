@@ -6,7 +6,7 @@ import os
 os.chdir("/Users/jort/coding/AvianOrders/")
 
 ## specify names of fasta files
-fasta_file_names = ["h5n1_ha.copy.fasta"]
+fasta_file_names = ["h5n1_ha.fasta", "h5n1_pb2.fasta"]
 
 
 
