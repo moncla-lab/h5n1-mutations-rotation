@@ -2,7 +2,7 @@ import pandas as pd
 from scipy.stats import fisher_exact
 
 ## specify directory, files, and gene
-tsv_dir = '/Users/jort/Desktop/test/' # directory containing tsv files from get-all-aa-counts.py
+tsv_dir = '/Users/jort/Desktop/test/build3_pb2_end_aa/' # directory containing tsv files from get-all-aa-counts.py
 host1_file = 'human_all_aa_counts.tsv' # host1 (enriched in host) tsv file
 host2_file = 'avian_all_aa_counts.tsv' # host2 (background host) tsv file
 output_file = 'all_aa_or_pv.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
@@ -30,6 +30,16 @@ def cal_enr(host1_df_col, host2_df_col):
         absence_host1 = sum(host1_df_col.loc[~host1_df_col.index.isin([aa])])
         presence_host2 = host2_df_col.loc[aa]
         absence_host2 = sum(host2_df_col.loc[~host2_df_col.index.isin([aa])])
+        if presence_host2 == 0:
+            presence_host2 = 1
+        if absence_host1 == 0:
+            absence_host1 = 1
+
+        if presence_host1 == 0:
+            presence_host1 = 1
+        if absence_host2 == 0:
+            absence_host2 = 1
+        
         oddsr, p = fisher_exact([[presence_host1, absence_host1],[presence_host2, absence_host2]], alternative='two-sided')
         pos_scores[aa] = (oddsr, p)
 

@@ -4,13 +4,13 @@ import pandas as pd
 
 ## specify directory, files, hosts, and gene
 baltic_path = '/Users/jort/coding/baltic/baltic/baltic.py' # path to baltic.py file (https://github.com/evogytis/baltic)
-json_dir = '/Users/jort/Desktop/test/' # directory containing json file; output files to be saved here
-tree_file = 'flu_avian_h5n1_pb2_mutprop.json' # json tree with mutations propagated
+json_dir = '/Users/jort/Desktop/test/build3_ha_end_aa/' # directory containing json file; output files to be saved here
+tree_file = 'flu_avian_h5n1_ha_mutprop.json' # json tree with mutations propagated
 host1 = 'Human' # host to screen for enrichment in
 host2 = 'Avian' # background host
 host1_output_file = 'human_all_aa_counts.tsv' # output for host1 dataframe (.tsv)
 host2_output_file = 'avian_all_aa_counts.tsv' # output for host2 dataframe (.tsv)
-gene = 'PB2' # gene to analyze
+gene = 'HA' # gene to analyze
 
 
 ##### user input above #####
