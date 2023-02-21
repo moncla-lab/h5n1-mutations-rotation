@@ -3,11 +3,16 @@ import random
 import json
 import pandas as pd
 from scipy.stats import fisher_exact
+import multiprocessing as mp
+import time
 
 
-json_dir = '/Users/jort/Desktop/test/build3_pb2_end_aa/' # directory containing tree; results saved here
-tree_file = 'flu_avian_h5n1_pb2.json' # json tree you want to simulate mutations on
+
+json_dir = '/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun1/HA/' # directory containing tree; results saved here
+tree_file = 'flu_avian_h5n1_ha.json' # json tree you want to simulate mutations on
 output_file = 'simulation_data.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
+host1 = 'Human'
+host2 = 'Avian'
 iterations = 10000
 
 
@@ -49,34 +54,62 @@ def mutagenize_tree(parent, currentstate = None):
         for child in parent['children']:
             mutagenize_tree(child, currentstate)
 
+def run_sims(iterations):
+    all_sim_data = {'oddsr': [], 'pvalue': [], 'host1count': [], 'host2count': []}
+    for x in range(iterations):
+        global sim_results
+        sim_results = []
+        mutagenize_tree(parent)
+        p1 = sum([1 for _ in sim_results if _[1] == host1 and _[2] == 1])
+        a1 = sum([1 for _ in sim_results if _[1] == host1 and _[2] == 0])
+        p2 = sum([1 for _ in sim_results if _[1] == host2 and _[2] == 1])
+        a2 = sum([1 for _ in sim_results if _[1] == host2 and _[2] == 0])
+        if p2 == 0:
+            p2 = 1
+        if a1 == 0:
+            a1 = 1
+        oddsr, p = fisher_exact([[p1, a1],[p2, a2]], alternative='two-sided')
+        all_sim_data['oddsr'].append(oddsr)
+        all_sim_data['pvalue'].append(p)
+        all_sim_data['host1count'].append(p1)
+        all_sim_data['host2count'].append(p2)
+    return all_sim_data
 
+def get_iteration_list(iterations, cores):
+    """Function to create a list with total iterations evenly split among number of cores for multiprocessing"""
+    div, rem = divmod(iterations, cores)
+    return [div+1]*rem + [div]*(cores-rem)
 
-tree_path = json_dir + tree_file
-json_tree = read_in_tree_json(tree_path)
-parent = json_tree['tree']
+if __name__ == '__main__':
+    start_time = time.time()
 
-div_dict = {}
-get_div(parent)
-total_branch_length = sum(div_dict.values())
+    tree_path = json_dir + tree_file
+    json_tree = read_in_tree_json(tree_path)
+    parent = json_tree['tree']
 
-all_sim_data = {'oddsr': [], 'pvalue': [], 'humancount': [], 'aviancount': []}
-for x in range(iterations):
-    sim_results = []
-    mutagenize_tree(parent)
-    p1 = sum([1 for _ in sim_results if _[1] == 'Human' and _[2] == 1])
-    a1 = sum([1 for _ in sim_results if _[1] == 'Human' and _[2] == 0])
-    p2 = sum([1 for _ in sim_results if _[1] == 'Avian' and _[2] == 1])
-    a2 = sum([1 for _ in sim_results if _[1] == 'Avian' and _[2] == 0])
-    if p2 == 0:
-        p2 = 1
-    if a1 == 0:
-        a1 = 1
-    oddsr, p = fisher_exact([[p1, a1],[p2, a2]], alternative='two-sided')
-    all_sim_data['oddsr'].append(oddsr)
-    all_sim_data['pvalue'].append(p)
-    all_sim_data['humancount'].append(p1)
-    all_sim_data['aviancount'].append(p2)
+    div_dict = {}
+    get_div(parent)
+    total_branch_length = sum(div_dict.values())
 
-output_path = json_dir + output_file
-output_df = pd.DataFrame({'iteration': range(1,iterations+1), 'oddsratio': all_sim_data['oddsr'], 'pvalue': all_sim_data['pvalue'], 'humancount': all_sim_data['humancount'], 'aviancount': all_sim_data['aviancount']})
-output_df.to_csv(output_path, sep='\t', header=True, index=False)
+    cores = mp.cpu_count()
+    iter_list = get_iteration_list(iterations, cores)
+    mp.set_start_method('fork')
+    pool = mp.Pool()
+    sim_data = pool.map(run_sims, iter_list) # Run simmut.perform_simulations using arguments specified in sim_part, with iterations split among cores as specified in iter_list
+    pool.close()
+    pool.join()
+
+    print("It took", round(time.time() - start_time, 2), "seconds to run", iterations, "simulations")
+
+    combined_sim_data = {'oddsr': [y for x in sim_data for y in x['oddsr']],
+                        'pvalue': [y for x in sim_data for y in x['pvalue']],
+                        'host1count': [y for x in sim_data for y in x['host1count']],
+                        'host2count': [y for x in sim_data for y in x['host2count']]}
+
+    output_path = json_dir + output_file
+    output_df = pd.DataFrame({'iteration': range(1,iterations+1),
+                            'oddsratio': combined_sim_data['oddsr'],
+                            'pvalue': combined_sim_data['pvalue'],
+                            host1.lower()+'count': combined_sim_data['host1count'],
+                            host2.lower()+'count': combined_sim_data['host2count']})
+    output_df.to_csv(output_path, sep='\t', header=True, index=False)
