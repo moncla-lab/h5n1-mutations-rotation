@@ -25,14 +25,25 @@ def read_in_tree_json(input_tree):
 
 def get_branch_lengths(parent, branch_length_dict = None, parenttotaldiv = None):
     '''return dictionary containing branch lengths of a parent branch and all descendents'''
+    ## make dict if this is the initial call, otherwise use already existing dict
     branch_length_dict = branch_length_dict or {}
+
+    ## set parent's total divergence to 0 if this is the initial call
     parenttotaldiv = parenttotaldiv or 0
+
+    ## get total divergence for the current branch
     totaldiv = parent['node_attrs']['div']
-    div = totaldiv - parenttotaldiv
-    branch_length_dict[parent['name']] = div
+
+    ## and determine branch length based on current branch's divergence and parent's divergence
+    branch_length = totaldiv - parenttotaldiv
+    branch_length_dict[parent['name']] = branch_length
+
+    ## if there are children, get the branch length of each
+    ## pass on current totaldiv as parenttotaldiv
     if 'children' in parent:
         for child in parent['children']:
             get_branch_lengths(child, branch_length_dict, totaldiv)
+
     return branch_length_dict
 
 def simulate_gain_loss(branch_length, total_tree_branch_length):
@@ -48,13 +59,9 @@ def simulate_gain_loss(branch_length, total_tree_branch_length):
         mutation = True
     return mutation
 
-def mutagenize_tree(parent, currentstate = None, branch_length_dict = None, total_branch_length = None):
+def mutagenize_tree(parent, currentstate = None):
     '''run simulate_gain_loss on all branches starting at the parent, recursively calling on all children;
     then return list with host and mutation state of all leaves'''
-    ## get all branch lengths if this is the initial call
-    branch_length_dict = branch_length_dict or get_branch_lengths(parent)
-    total_branch_length = total_branch_length or sum(branch_length_dict.values())
-
     ## set currentstate to 0 if this is the initial call
     ## value of 0 = unmutated, 1 = mutated
     currentstate = currentstate or 0
@@ -73,7 +80,8 @@ def mutagenize_tree(parent, currentstate = None, branch_length_dict = None, tota
     ## if not, continue mutagenizing all downstream branches
     else:
         for child in parent['children']:
-            mutagenize_tree(child, currentstate, branch_length_dict, total_branch_length)
+            mutagenize_tree(child, currentstate)
+
 
 def run_sims(iterations):
     '''perform n simulations, where n = number of iterations defined, and perform a Fisher's exact test for each iteration;
@@ -125,6 +133,10 @@ if __name__ == '__main__':
     tree_path = json_dir + tree_file
     json_tree = read_in_tree_json(tree_path)
     root = json_tree['tree']
+
+    ## get all branch lengths and the tree's total branch length
+    branch_length_dict = get_branch_lengths(root)
+    total_branch_length = sum(branch_length_dict.values())
 
     ## split iterations among cores
     cores = mp.cpu_count()
