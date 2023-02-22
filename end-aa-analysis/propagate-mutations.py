@@ -3,7 +3,7 @@ import os
 
 ## specify directory, files, and gene
 gene = 'PB2' # gene to propagate muts from
-json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene.lower()}/' # directory containing json files
+json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene}/' # directory containing json files
 tree_file = f'flu_avian_h5n1_{gene.lower()}.json' # json tree you want to propagate mutations on
 root_file = f'flu_avian_h5n1_{gene.lower()}_root-sequence.json' # json file with inferred root sequence
 output_file = f'flu_avian_h5n1_{gene.lower()}_mutprop.json' # name for new json tree; to be saved in json_dir
@@ -71,23 +71,3 @@ propagate_muts(parent)
 ## save json tree with propagated muts
 with open(output_file, 'w') as outfile:
     json.dump(json_tree, outfile)
-
-
-# root_seq_dict = {}
-# leaf_list = []
-
-# for i in range(len(root_seq)):
-#     root_seq_dict[i+1] = root_seq[i]
-
-# print(root_seq_dict)
-# print(root_seq)
-
-# def get_children(parent, current_seq_dict = None):
-#     current_seq_dict = current_seq_dict or root_seq_dict.copy()
-#     if 'HA' in parent['branch_attrs']['mutations']:
-#         current_seq_dict = parent['branch_attrs']['mutations']['HA']
-#     if 'children' in parent:
-#         for child in parent['children']:
-#             get_children(child, current_seq_dict)
-
-# get_children(parent)

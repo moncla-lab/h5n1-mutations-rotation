@@ -13,7 +13,7 @@ tree_file = 'flu_avian_h5n1_ha.json' # json tree you want to simulate mutations 
 output_file = 'simulation_data.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
 host1 = 'Human'
 host2 = 'Avian'
-iterations = 10000
+iterations = 1000
 
 
 
@@ -59,9 +59,12 @@ def simulate_gain_loss(branch_length, total_tree_branch_length):
         mutation = True
     return mutation
 
-def mutagenize_tree(parent, currentstate = None):
+def mutagenize_tree(parent, results_list, currentstate = None):
     '''run simulate_gain_loss on all branches starting at the parent, recursively calling on all children;
     then return list with host and mutation state of all leaves'''
+
+    #results_list = []
+
     ## set currentstate to 0 if this is the initial call
     ## value of 0 = unmutated, 1 = mutated
     currentstate = currentstate or 0
@@ -73,14 +76,19 @@ def mutagenize_tree(parent, currentstate = None):
     if simulate_gain_loss(branch_length, total_branch_length):
         currentstate = 1 - currentstate
 
-    ## if this is a leaf, append its name, host, and currentstate to global sim_results list
+    ## if this is a leaf, append its name, host, and currentstate to results_list
     if not 'children' in parent:
-        sim_results.append((parent['name'], parent['node_attrs']['host']['value'], currentstate))
+        # sim_results.append((parent['name'], parent['node_attrs']['host']['value'], currentstate))
+        results_list.append((parent['name'], parent['node_attrs']['host']['value'], currentstate))
     
-    ## if not, continue mutagenizing all downstream branches
+    ## if not, continue mutagenizing all downstream branches, extending results_list with the results of any downstream leaves
     else:
         for child in parent['children']:
-            mutagenize_tree(child, currentstate)
+            #results_list.extend(mutagenize_tree(child, currentstate))
+            mutagenize_tree(child, results_list, currentstate)
+
+    ## return results_list for extending (in recursion) or for analysis once recursion is complete
+    #return results_list
 
 
 def run_sims(iterations):
@@ -90,12 +98,11 @@ def run_sims(iterations):
     all_sim_data = {'oddsr': [], 'pvalue': [], 'host1count': [], 'host2count': []}
 
     for iter in range(iterations):
-        ## create blank global list for each iteration to append data after mutagenizing the tree
-        global sim_results 
+        ## mutagenize from root, adding all leaf data for that iteration to sim_results
+        #sim_results = []
         sim_results = []
-
-        ## mutagenize from root, appending data for that iteration to sim_results
-        mutagenize_tree(root)
+        mutagenize_tree(root, sim_results)
+        #sim_results = mutagenize_tree(root)
 
         ## get 2x2 counts for Fisher's exact test
         p1 = sum([1 for _ in sim_results if _[1] == host1 and _[2] == 1])
@@ -117,6 +124,8 @@ def run_sims(iterations):
         all_sim_data['pvalue'].append(p)
         all_sim_data['host1count'].append(p1)
         all_sim_data['host2count'].append(p2)
+    
+    print(sim_results, len(sim_results))
     
     return all_sim_data
 
@@ -154,7 +163,7 @@ if __name__ == '__main__':
     ## print timer statement
     print("It took", round(time.time() - start_time, 2), "seconds to run", iterations, "simulations")
 
-    ## make dictionary with multiprocessing data as individual lists instead of lists of lists
+    ## make dictionary with multiprocessing data as individual lists instead of lists of dicts
     combined_sim_data = {'oddsr': [y for x in pool_sim_data for y in x['oddsr']],
                         'pvalue': [y for x in pool_sim_data for y in x['pvalue']],
                         'host1count': [y for x in pool_sim_data for y in x['host1count']],

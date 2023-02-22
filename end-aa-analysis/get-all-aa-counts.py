@@ -5,7 +5,7 @@ import pandas as pd
 ## specify directory, files, hosts, and gene
 baltic_path = '/Users/jort/coding/baltic/baltic/baltic.py' # path to baltic.py file (https://github.com/evogytis/baltic)
 gene = 'HA' # gene to analyze
-json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene.lower()}/' # directory containing json file; output files to be saved here
+json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene}/' # directory containing json file; output files to be saved here
 tree_file = f'flu_avian_h5n1_{gene.lower()}_mutprop.json' # json tree with mutations propagated
 host1 = 'Human' # host to screen for enrichment in
 host2 = 'Avian' # background host

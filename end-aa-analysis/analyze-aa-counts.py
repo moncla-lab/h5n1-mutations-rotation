@@ -2,8 +2,8 @@ import pandas as pd
 from scipy.stats import fisher_exact
 
 ## specify directory, files, and gene
-gene = 'PB2' # gene to analyze
-tsv_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene.lower()}/' # directory containing tsv files from get-all-aa-counts.py
+gene = 'HA' # gene to analyze
+tsv_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun1/{gene}/' # directory containing tsv files from get-all-aa-counts.py
 host1_file = 'human_all_aa_counts.tsv' # host1 (enriched in host) tsv file
 host2_file = 'avian_all_aa_counts.tsv' # host2 (background host) tsv file
 output_file = 'all_aa_or_pv.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
