@@ -6,7 +6,8 @@ gene = 'HA' # gene to analyze
 tsv_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun1/{gene}/' # directory containing tsv files from get-all-aa-counts.py
 host1_file = 'human_all_aa_counts.tsv' # host1 (enriched in host) tsv file
 host2_file = 'avian_all_aa_counts.tsv' # host2 (background host) tsv file
-output_file = 'all_aa_or_pv.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
+output_file = 'all_aa_or_pv.csv' # output for dataframe with odds ratios and pvalues (.csv)
+alternative = 'two-sided'
 
 
 ##### user input above #####
@@ -40,7 +41,7 @@ def cal_enr(host1_df_col, host2_df_col):
         if absence_host2 == 0:
             absence_host2 = 1
         
-        oddsr, p = fisher_exact([[presence_host1, absence_host1],[presence_host2, absence_host2]], alternative='two-sided')
+        oddsr, p = fisher_exact([[presence_host1, absence_host1],[presence_host2, absence_host2]], alternative=alternative)
         pos_scores[aa] = (oddsr, p)
 
     return pos_scores
@@ -92,4 +93,4 @@ for pos in all_pos_scores:
 ## generate dataframe from data and save as a tsv file
 output_df = pd.DataFrame({'position': pos_list, 'aminoacid': aa_list, 'oddsratio': or_list, 'pvalue': pv_list})
 output_path = tsv_dir + output_file
-output_df.to_csv(output_path, sep='\t', header=True, index=False)
+output_df.to_csv(output_path, header=True, index=False)

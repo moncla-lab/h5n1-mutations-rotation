@@ -8,12 +8,13 @@ import time
 
 
 
-json_dir = '/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun1/HA/' # directory containing tree; results saved here
-tree_file = 'flu_avian_h5n1_ha.json' # json tree you want to simulate mutations on
-output_file = 'simulation_data.tsv' # output for dataframe with odds ratios and pvalues (.tsv)
+json_dir = '/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun0/PB2/' # directory containing tree; results saved here
+tree_file = 'flu_avian_h5n1_pb2.json' # json tree you want to simulate mutations on
+output_file = 'simulation_data_greater.csv' # output for dataframe with odds ratios and pvalues (.csv)
 host1 = 'Human'
 host2 = 'Avian'
-iterations = 1000
+iterations = 10000
+alternative = 'greater'
 
 
 
@@ -117,7 +118,7 @@ def run_sims(iterations):
             a1 = 1
 
         ## get odds ratio and pvalue from Fisher's exact test
-        oddsr, p = fisher_exact([[p1, a1],[p2, a2]], alternative='two-sided')
+        oddsr, p = fisher_exact([[p1, a1],[p2, a2]], alternative=alternative)
 
         ## append this iteration to all_sim_data
         all_sim_data['oddsr'].append(oddsr)
@@ -178,4 +179,4 @@ if __name__ == '__main__':
     
     ## and save it
     output_path = json_dir + output_file
-    output_df.to_csv(output_path, sep='\t', header=True, index=False)
+    output_df.to_csv(output_path, header=True, index=False)

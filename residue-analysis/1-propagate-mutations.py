@@ -3,7 +3,7 @@ import os
 
 ## specify directory, files, and gene
 gene = 'PB2' # gene to propagate muts from
-json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/build3-rerun3/{gene}/' # directory containing json files
+json_dir = f'/Users/jort/coding/h5n1-mutations-rotation/build3-end-aa-analysis/b3-r0-CMH-by-6-tree-cluster/{gene}/' # directory containing json files
 tree_file = f'flu_avian_h5n1_{gene.lower()}.json' # json tree you want to propagate mutations on
 root_file = f'flu_avian_h5n1_{gene.lower()}_root-sequence.json' # json file with inferred root sequence
 output_file = f'flu_avian_h5n1_{gene.lower()}_mutprop.json' # name for new json tree; to be saved in json_dir
